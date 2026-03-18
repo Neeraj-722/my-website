@@ -376,6 +376,7 @@ h1, h2, h3, h4, .logo {
     margin-bottom: 25px;
     font-size: 1.2rem;
     color: var(--text-secondary);
+    text-align: justify;
 }
 
 .about-card strong {
