@@ -92,3 +92,30 @@ document.querySelectorAll('.nav-links a').forEach(link => {
         hamburger.querySelector('i').classList.add('fa-bars');
     });
 });
+
+// --- Theme Toggle Logic ---
+const themeBtn = document.getElementById('theme-btn');
+const themeIcon = themeBtn.querySelector('i');
+
+// 1. Check for saved theme preference in local storage
+const savedTheme = localStorage.getItem('portfolio-theme');
+if (savedTheme === 'light') {
+    document.body.classList.add('light-theme');
+    themeIcon.classList.remove('fa-moon');
+    themeIcon.classList.add('fa-sun');
+}
+
+// 2. Toggle Theme on Click
+themeBtn.addEventListener('click', () => {
+    document.body.classList.toggle('light-theme');
+    
+    if (document.body.classList.contains('light-theme')) {
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-sun');
+        localStorage.setItem('portfolio-theme', 'light');
+    } else {
+        themeIcon.classList.remove('fa-sun');
+        themeIcon.classList.add('fa-moon');
+        localStorage.setItem('portfolio-theme', 'dark');
+    }
+});
