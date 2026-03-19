@@ -119,3 +119,41 @@ themeBtn.addEventListener('click', () => {
         localStorage.setItem('portfolio-theme', 'dark');
     }
 });
+
+// Phone Obfuscation
+function revealPhone(e) {
+    if (e.currentTarget.href.includes('tel:')) return;
+    
+    e.preventDefault();
+    const phoneBtn = e.currentTarget;
+    const phoneText = document.getElementById('phone-text');
+    // Simple obfuscation dynamically building the number
+    const parts = ['+91', '881', '754', '8281'];
+    const formatted = parts.join('-');
+    const link = 'tel:' + parts.join('');
+    
+    phoneBtn.href = link;
+    phoneText.textContent = formatted;
+}
+
+// Dummy Form Submission
+function submitForm(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
+    
+    // Simulate network delay
+    setTimeout(() => {
+        btn.textContent = 'Message Sent!';
+        btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        e.target.reset();
+        
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+            btn.style.background = '';
+        }, 3000);
+    }, 1500);
+}
