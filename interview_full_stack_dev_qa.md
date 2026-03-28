@@ -349,3 +349,99 @@ Isolation levels dictate how aggressively locks are applied during concurrent ac
 
 *   **Pros:** High isolation levels (like Serializable) ensure perfect data integrity, completely eliminating "Phantom Reads" in highly-sensitive transactional systems (finance apps).
 *   **Cons:** High isolation levels drastically increase database blocking and deadlocks, devastating application concurrency and overall performance. Lower levels (Read Uncommitted) are lightning-fast but risk reading dirty corrupted data.
+
+---
+
+## Part 6: Supplementary Core Concepts
+
+### Q27: `ref` and `out` keywords in C#
+**Answer:** Both pass arguments by reference instead of by value.
+*   `ref`: The variable **must** be initialized *before* passing it to the method.
+*   `out`: The variable does **not** need initialization beforehand, but the method **must** assign a value to it before returning.
+
+**Example:**
+```csharp
+bool success = int.TryParse("123", out int result); // We get both a boolean and the parsed int
+```
+*   **Pros:** Allows returning multiple values from a single method efficiently without creating tuple objects.
+*   **Cons:** Mutating parameters can lead to confusing side-effects (violates pure functions).
+
+### Q28: Dependency Injection Lifetimes (Transient, Scoped, Singleton)
+**Answer:**
+*   **Transient:** A new instance is created *every single time* it is requested.
+*   **Scoped:** A new instance is created *once per HTTP request*. All classes sharing the request get the exact same instance.
+*   **Singleton:** A single instance is created when the app starts and is used universally thereafter.
+
+**Example:** `builder.Services.AddScoped<IUserRepository, UserRepository>()`
+
+*   **Pros:** Enforces loosely coupled, highly testable code. Scoped perfectly matches the web request lifecycle, preventing cross-tenant user data leaks.
+*   **Cons:** Accidental "Captive Dependencies" (injecting a Transient service into a Singleton permanently traps it as a Singleton forever, often causing memory leaks).
+
+### Q29: ASP.NET Core Filters Pipeline
+**Answer:** Filters run at different stages of the request pipeline.
+1.  **Authorization:** Runs first. Confirms the user has permission.
+2.  **Resource:** Runs after auth, before model binding. Great for Caching.
+3.  **Action:** Runs right before and after the Controller method executes.
+4.  **Exception:** Runs if an unhandled exception occurs in the controller.
+5.  **Result:** Runs before and after the view/JSON result executes.
+
+**Example:** `[Authorize(Roles="Admin")]` placed atop a controller.
+
+*   **Pros:** Prevents code duplication by centralizing cross-cutting concerns (logging, global auth validation).
+*   **Cons:** Excessive/nested filters make the request pipeline extremely complex to debug sequentially.
+
+### Q30: JWT Access Tokens vs Refresh Tokens
+**Answer:**
+*   **Access Token:** Short-lived (e.g., 15 mins). Contains user claims. Sent with every API request via the `Authorization: Bearer` header.
+*   **Refresh Token:** Long-lived (e.g., 7 days). Stored securely (e.g., HTTP-only cookie). Used *only* to request a new Access Token from the auth server when the old one expires.
+
+**Example:** API returns `401 Unauthorized` -> Angular interceptor catches it -> quietly calls POST `/api/refresh` -> retries the original request.
+
+*   **Pros:** If an attacker steals an Access Token, it becomes useless quickly. The Refresh Token can be deleted server-side to forcefully revoke a user's session globally.
+*   **Cons:** Moderately complex to implement securely on the frontend (requires silent HTTP interceptors to manage token rotation matrices).
+
+### Q31: Promises (JS) vs Observables (RxJS)
+**Answer:**
+*   **Promise:** Eager (executes immediately). Returns exactly *one* value. Cannot be cancelled once fired.
+*   **Observable:** Lazy (executes only when `.subscribe()` is called). Can emit *multiple* values over time. Can be gracefully cancelled (`.unsubscribe()`).
+
+**Example:** A Promise is buying a book (one item eventually). An Observable is subscribing to a magazine (streams of items over time until you cancel it).
+
+*   **Pros (Observable):** Incredible algorithmic control over data streams (cancellation, retrying, debouncing keystrokes on search boxes).
+*   **Cons (Observable):** Massive learning curve compared to native `async/await` Promises. Forgetting to unsubscribe in Angular causes disastrous memory leaks.
+
+### Q32: Default vs OnPush Change Detection in Angular
+**Answer:**
+*   **Default:** Angular checks absolutely every component in the entire DOM tree every time a browser event occurs anywhere.
+*   **OnPush:** Angular skips checking the component entirely *unless* its `@Input()` reference completely changes, or an internal Observable explicitly fires an async pipe.
+
+**Example:** Setting `changeDetection: ChangeDetectionStrategy.OnPush` on a large Dashboard component.
+
+*   **Pros (OnPush):** Massively improves rendering performance in huge enterprise data grids by skipping redundant checking.
+*   **Cons (OnPush):** Mutating an object property (like `user.name = 'Bob'`) won't trigger UI updates because the memory reference didn't change. You must assign a completely new cloned object reference.
+
+### Q33: Angular - Directives vs Pipes vs Interceptors
+**Answer:** 
+*   **Structural Directive (`*ngIf`, `*ngFor`):** Changes the DOM **structure** (creates or destroys DOM elements).
+*   **Attribute Directive (`ngClass`, `ngStyle`):** Changes a DOM element's **appearance or behavior** without destroying it.
+*   **Pipes (`date`, `currency`):** Transforms data exclusively for UI display. 
+    *   **Pure Pipe:** Only recalculates if primitive input values change. Highly performant.
+    *   **Impure Pipe:** Recalculates aggressively on every single DOM digest cycle. Very bad for app performance.
+*   **HttpInterceptor:** Middleware that catches all outgoing HTTP requests (to inject JWTs) or catches incoming responses (to handle global 401s).
+
+### Q34: EF Core - Dealing with the N+1 Query Problem
+**Answer:** Occurs when EF Core triggers one initial query to load 100 parents (N=1), and then loops through them, firing 100 separate sub-queries to lazily load their children.
+
+**Example:**
+*   *Bad (N+1):* `foreach (var c in db.Customers) { print(c.Orders.Count); }` (Triggers 101 queries)
+*   *Fix (Eager Loading):* `var cust = db.Customers.Include(c => c.Orders).ToList();` (Triggers 1 single optimized query)
+
+*   **Pros of Fix:** Executes exactly 1 efficient SQL join, saving 100 network round trips to the DB server.
+*   **Cons ofFix:** Eager loading too many deeply nested tables (`Include().ThenInclude().ThenInclude()`) generates gigantic Cartesian Product datasets that can instantly crash the API server's RAM.
+
+### Q35: SQL Knowledge - Cross Join vs Window Functions
+**Answer:**
+*   **Cross Join:** Returns the Cartesian product of two tables (every single row from Table A matched with every single row from Table B). Usually a sign of a critical bug/missing `ON` clause, causing massive data explosions.
+*   **Window Functions (`OVER (PARTITION BY ...)`):** Performs mathematical calculations across a set of rows associated with the current row, *without* collapsing them into a single summary row like `GROUP BY` does.
+
+**Example:** Determining the Running Total of sales over time, or Ranking salespeople individually within their specific departments without destroying the rest of the table data.
